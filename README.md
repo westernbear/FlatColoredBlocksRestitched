@@ -11,7 +11,7 @@ Requirements
 - Fabric Loader 0.19.3 or newer
 - Fabric API 0.155.2+26.2 or newer
 - Chisels & Bits 1.3.9+26.2 from the pinned westernbear source commit
-- Forge Config API Port 26.2.1 or newer
+- Fzzy Config 0.7.6+26.2 or newer
 
 Build with `bash gradlew clean build`. The pinned Chisels & Bits development JAR is in
 `libs/`; it remains a separate runtime mod and is not bundled into the Flat

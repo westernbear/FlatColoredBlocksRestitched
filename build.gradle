@@ -24,8 +24,8 @@ configurations {
 repositories {
 	mavenCentral()
 	maven {
-		name = 'Fuzs Mod Resources'
-		url = 'https://raw.githubusercontent.com/Fuzss/modresources/main/maven/'
+		name = 'Fzzy Config'
+		url = 'https://maven.fzzyhmstrs.me/'
 	}
 }
 
@@ -63,7 +63,9 @@ dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
-	implementation "fuzs.forgeconfigapiport:forgeconfigapiport-fabric:${project.forge_config_api_port_version}"
+	implementation("me.fzzyhmstrs:fzzy_config:${project.fzzy_config_version}") {
+		exclude group: 'com.terraformersmc', module: 'modmenu'
+	}
 	implementation files('libs/chiselsandbits-1.3.9+26.2.jar')
 }
 
