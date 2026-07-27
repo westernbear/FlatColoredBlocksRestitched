@@ -1,47 +1,31 @@
 package mod.flatcoloredblocks.craftingitem;
 
-import mod.flatcoloredblocks.ModUtil;
-import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
-public class SlotColoredBlockCrafter extends Slot
-{
+final class SlotColoredBlockCrafter extends Slot {
+	private final InventoryColoredBlockCrafter craftingInventory;
 
-	InventoryColoredBlockCrafter secondInv;
-
-	public SlotColoredBlockCrafter(
-			final Container inv,
-			final InventoryColoredBlockCrafter secondInv,
-			final int index,
-			final int x,
-			final int y )
-	{
-		super( inv, index, x, y );
-		this.secondInv = secondInv;
+	SlotColoredBlockCrafter(
+			InventoryColoredBlockCrafter inventory, int index, int x, int y) {
+		super(inventory, index, x, y);
+		this.craftingInventory = inventory;
 	}
 
 	@Override
-	public boolean mayPlace(
-			final ItemStack stack )
-	{
+	public boolean mayPlace(ItemStack stack) {
 		return false;
 	}
 
 	@Override
-	public boolean mayPickup(
-			final Player playerIn )
-	{
-		return !ModUtil.isEmpty( secondInv.craftItem( getItem(), 1, true ) );
+	public boolean mayPickup(Player player) {
+		return !craftingInventory.craft(getItem(), 1, true).isEmpty();
 	}
 
 	@Override
-	public void onTake(
-			Player thePlayer,
-			ItemStack stack )
-	{
-		secondInv.craftItem( stack, 1, false );
+	public void onTake(Player player, ItemStack stack) {
+		craftingInventory.craft(stack, 1, false);
+		super.onTake(player, stack);
 	}
-
 }

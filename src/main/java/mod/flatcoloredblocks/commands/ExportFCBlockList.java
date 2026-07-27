@@ -1,125 +1,130 @@
 package mod.flatcoloredblocks.commands;
 
-import java.io.File;
-import java.io.FileWriter;
+import java.io.BufferedWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-/*
+import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.Locale;
 import mod.flatcoloredblocks.FlatColoredBlocks;
 import mod.flatcoloredblocks.block.BlockFlatColored;
-import mod.flatcoloredblocks.block.ConversionHSV2RGB;
-import mod.flatcoloredblocks.block.ItemBlockFlatColored;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.command.CommandException;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.text.TextComponentTranslation;*/
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.state.BlockState;
 
-// TODO: ExportFCBlockList command
+public final class ExportFCBlockList {
+	private static final String FILE_NAME = "flatcoloredblocks.csv";
 
-/*
-public class ExportFCBlockList
-{
-
-	@Override
-	public String getCommandName()
-	{
-		return "flatcoloredblock_export_list";
+	private ExportFCBlockList() {
 	}
 
-	@Override
-	public int getRequiredPermissionLevel()
-	{
-		return 2;
+	public static void register() {
+		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
+				dispatcher.register(Commands.literal("flatcoloredblock_export_list")
+						.requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+						.executes(context -> execute(context.getSource()))));
 	}
 
-	@Override
-	public String getCommandUsage(
-			ICommandSender sender )
-	{
-		return "flatcoloredblocks.commands.export_list.usage";
+	private static int execute(CommandSourceStack source) {
+		Path output = FlatColoredBlocks.CONFIG.getFilePath().resolveSibling(FILE_NAME);
+		try {
+			writeCsv(output);
+			source.sendSuccess(
+					() -> Component.translatable(
+							"flatcoloredblocks.commands.export_list.savedfile",
+							output.toAbsolutePath()),
+					false);
+			return 1;
+		} catch (IOException exception) {
+			FlatColoredBlocks.LOGGER.error("Unable to export {}", output, exception);
+			source.sendFailure(Component.translatable(
+					"flatcoloredblocks.commands.export_list.unabletosave",
+					output.toAbsolutePath()));
+			return 0;
+		}
 	}
 
-	@Override
-	public void execute(
-			MinecraftServer server,
-			ICommandSender sender,
-			String[] args ) throws CommandException
-	{
-		File configPath = FlatColoredBlocks.instance.config.getFilePath();
-		String path = configPath.getParentFile().getAbsolutePath() + File.separator + "flatcoloredblocks.csv";
-
-		try
-		{
-			List<ItemStack> list = new ArrayList<ItemStack>();
-			BlockFlatColored.getAllShades( list );
-
-			FileWriter writer = new FileWriter( path );
-
-			writer.write( "Shade Number,Name,HEX,Red,Blue,Green,Hue,Saturation,Value,Opacity,Light Value\n" );
-
-			for ( ItemStack is : list )
-			{
-				Item it = is.getItem();
-				if ( it instanceof ItemBlockFlatColored )
-				{
-					final IBlockState state = ( (ItemBlockFlatColored) it ).getStateFromStack( is );
-					final BlockFlatColored blk = ( (ItemBlockFlatColored) it ).getColoredBlock();
-
-					final int hsv = blk.hsvFromState( state );
-					final int rgb = ConversionHSV2RGB.toRGB( hsv );
-
-					final int h = hsv >> 16 & 0xff;
-					final int s = hsv >> 8 & 0xff;
-					final int v = hsv & 0xff;
-
-					final int r = rgb >> 16 & 0xff;
-					final int g = rgb >> 8 & 0xff;
-					final int b = rgb & 0xff;
-
-					StringBuilder line = new StringBuilder();
-
-					line.append( blk.getShadeNumber( state ) );
-					line.append( ",\"" );
-					line.append( is.getDisplayName().getUnformattedComponentText().replace( "\"", "\"\"" ) );
-					line.append( "\"," );
-
-					line.append( "#" ).append( ItemBlockFlatColored.hexPad( Integer.toString( r, 16 ) ) ).append( ItemBlockFlatColored.hexPad( Integer.toString( g, 16 ) ) ).append( ItemBlockFlatColored.hexPad( Integer.toString( b, 16 ) ) );
-					line.append( "," );
-
-					line.append( r );
-					line.append( "," );
-					line.append( g );
-					line.append( "," );
-					line.append( b );
-					line.append( "," );
-
-					line.append( 360 * h / 255 );
-					line.append( "," );
-					line.append( 100 * s / 255 );
-					line.append( "," );
-					line.append( 100 * v / 255 );
-					line.append( "," );
-
-					line.append( blk.opacity );
-					line.append( "," );
-					line.append( blk.lightValue );
-					line.append( "\n" );
-
-					writer.write( line.toString() );
+	public static void writeCsv(Path output) throws IOException {
+		Path parent = output.toAbsolutePath().getParent();
+		if (parent != null) {
+			Files.createDirectories(parent);
+		}
+		Path temporary = output.resolveSibling(output.getFileName() + ".tmp");
+		try {
+			try (BufferedWriter writer = Files.newBufferedWriter(
+					temporary,
+					StandardCharsets.UTF_8)) {
+				writeRow(
+						writer,
+						"Registry ID",
+						"Variant",
+						"Shade Number",
+						"Name",
+						"HEX",
+						"Red",
+						"Green",
+						"Blue",
+						"Hue",
+						"Saturation",
+						"Value",
+						"Opacity",
+						"Light Value");
+				for (BlockFlatColored block : FlatColoredBlocks.BLOCKS) {
+					String registryId = BuiltInRegistries.BLOCK.getKey(block).toString();
+					for (int shade = 0; shade < block.getNumberOfShades(); shade++) {
+						BlockState state = block.defaultBlockState()
+								.setValue(block.shadeProperty(), shade);
+						ItemStack stack = block.stackForState(state, 1);
+						int hsv = block.hsvFromState(state);
+						int rgb = block.colorFromShade(shade);
+						writeRow(
+								writer,
+								registryId,
+								Integer.toString(block.getVariant()),
+								Integer.toString(shade),
+								stack.getHoverName().getString(),
+								String.format(Locale.ROOT, "#%06X", rgb),
+								Integer.toString(rgb >> 16 & 0xff),
+								Integer.toString(rgb >> 8 & 0xff),
+								Integer.toString(rgb & 0xff),
+								Integer.toString(360 * (hsv >> 16 & 0xff) / 255),
+								Integer.toString(100 * (hsv >> 8 & 0xff) / 255),
+								Integer.toString(100 * (hsv & 0xff) / 255),
+								Integer.toString(block.opacity),
+								Integer.toString(block.lightValue));
+					}
 				}
 			}
-
-			writer.close();
-			sender.addChatMessage( new TextComponentTranslation( "flatcoloredblocks.commands.export_list.savedfile", path ) );
-		}
-		catch ( IOException e )
-		{
-			throw new CommandException( new TextComponentTranslation( "flatcoloredblocks.commands.export_list.unabletosave", path ) );
+			moveAtomically(temporary, output);
+		} catch (IOException exception) {
+			Files.deleteIfExists(temporary);
+			throw exception;
 		}
 	}
 
+	private static void moveAtomically(Path source, Path target) throws IOException {
+		try {
+			Files.move(source, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+		} catch (AtomicMoveNotSupportedException ignored) {
+			Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
+		}
+	}
+
+	private static void writeRow(BufferedWriter writer, String... values) throws IOException {
+		for (int index = 0; index < values.length; index++) {
+			if (index > 0) {
+				writer.write(',');
+			}
+			writer.write('"');
+			writer.write(values[index].replace("\"", "\"\""));
+			writer.write('"');
+		}
+		writer.newLine();
+	}
 }
-*/

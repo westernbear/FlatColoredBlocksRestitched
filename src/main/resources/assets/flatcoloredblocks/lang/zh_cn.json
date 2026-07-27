@@ -2,6 +2,7 @@
 	"itemGroup.FlatColoredBlocks":	"平滑染色方块",
 
 	"item.flatcoloredblocks.coloredcraftingitem.name":	"染色方块合成器",
+	"item.flatcoloredblocks.coloredcraftingitem":	"染色方块合成器",
 	"item.flatcoloredblocks.coloredcraftingitem.tip1":	"用原石/玻璃/萤石配合染料来合成染色方块",
 	"item.flatcoloredblocks.coloredcraftingitem.tip2":	"将材料放在你的物品栏后再使用这个.",
 
@@ -60,5 +61,9 @@
 	"flatcoloredblocks.darkgreen.name":	"深绿色方块",
 	"flatcoloredblocks.darkcyan.name":	"深青色方块",
 	"flatcoloredblocks.darkblue.name":	"深蓝色方块",
-	"flatcoloredblocks.darkmagenta.name":	"深品红色方块"
+	"flatcoloredblocks.darkmagenta.name":	"深品红色方块",
+
+	"tag.item.flatcoloredblocks.solid_crafting_block": "实体染色方块材料",
+	"tag.item.flatcoloredblocks.transparent_crafting_block": "透明染色方块材料",
+	"tag.item.flatcoloredblocks.glowing_crafting_block": "发光染色方块材料"
 }

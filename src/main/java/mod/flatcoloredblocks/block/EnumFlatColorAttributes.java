@@ -1,35 +1,35 @@
 package mod.flatcoloredblocks.block;
 
 import net.minecraft.world.item.DyeColor;
-import net.minecraft.world.level.material.MaterialColor;
+import net.minecraft.world.level.material.MapColor;
 
 import java.util.Set;
 
 public enum EnumFlatColorAttributes
 {
 	// non-colors
-	black( true, true, DyeColor.BLACK, MaterialColor.COLOR_BLACK ),
-	grey( true, true, DyeColor.GRAY, MaterialColor.COLOR_GRAY ),
-	silver( true, true, DyeColor.LIGHT_GRAY, MaterialColor.COLOR_LIGHT_GRAY ),
-	white( true, true, DyeColor.WHITE, MaterialColor.SNOW ),
+	black( true, true, DyeColor.BLACK, MapColor.COLOR_BLACK ),
+	grey( true, true, DyeColor.GRAY, MapColor.COLOR_GRAY ),
+	silver( true, true, DyeColor.LIGHT_GRAY, MapColor.COLOR_LIGHT_GRAY ),
+	white( true, true, DyeColor.WHITE, MapColor.SNOW ),
 
 	// colors...
-	red( true, false, DyeColor.RED, MaterialColor.COLOR_RED ),
-	orange( true, false, DyeColor.ORANGE, MaterialColor.COLOR_ORANGE ),
-	yellow( true, false, DyeColor.YELLOW, MaterialColor.COLOR_YELLOW ),
-	lime( true, false, DyeColor.LIME, MaterialColor.COLOR_LIGHT_GREEN ),
-	green( true, false, DyeColor.GREEN, MaterialColor.COLOR_GREEN ),
-	emerald( true, false, DyeColor.GREEN, DyeColor.CYAN, MaterialColor.COLOR_GREEN ),
-	cyan( true, false, DyeColor.CYAN, MaterialColor.COLOR_CYAN ),
-	azure( true, false, DyeColor.BLUE, DyeColor.CYAN, MaterialColor.COLOR_LIGHT_BLUE ),
-	blue( true, false, DyeColor.BLUE, MaterialColor.COLOR_BLUE ),
-	violet( true, false, DyeColor.PURPLE, MaterialColor.COLOR_PURPLE ),
-	magenta( true, false, DyeColor.MAGENTA, MaterialColor.COLOR_MAGENTA ),
-	pink( true, false, DyeColor.PINK, MaterialColor.COLOR_PINK ),
+	red( true, false, DyeColor.RED, MapColor.COLOR_RED ),
+	orange( true, false, DyeColor.ORANGE, MapColor.COLOR_ORANGE ),
+	yellow( true, false, DyeColor.YELLOW, MapColor.COLOR_YELLOW ),
+	lime( true, false, DyeColor.LIME, MapColor.COLOR_LIGHT_GREEN ),
+	green( true, false, DyeColor.GREEN, MapColor.COLOR_GREEN ),
+	emerald( true, false, DyeColor.GREEN, DyeColor.CYAN, MapColor.COLOR_GREEN ),
+	cyan( true, false, DyeColor.CYAN, MapColor.COLOR_CYAN ),
+	azure( true, false, DyeColor.BLUE, DyeColor.CYAN, MapColor.COLOR_LIGHT_BLUE ),
+	blue( true, false, DyeColor.BLUE, MapColor.COLOR_BLUE ),
+	violet( true, false, DyeColor.PURPLE, MapColor.COLOR_PURPLE ),
+	magenta( true, false, DyeColor.MAGENTA, MapColor.COLOR_MAGENTA ),
+	pink( true, false, DyeColor.PINK, MapColor.COLOR_PINK ),
 
 	// color modifiers
-	dark( false, false, DyeColor.BLACK, MaterialColor.COLOR_BLACK ),
-	light( false, false, DyeColor.WHITE, MaterialColor.SNOW );
+	dark( false, false, DyeColor.BLACK, MapColor.COLOR_BLACK ),
+	light( false, false, DyeColor.WHITE, MapColor.SNOW );
 
 	// description of characteristic
 	public final boolean isModifier;
@@ -40,19 +40,19 @@ public enum EnumFlatColorAttributes
 	public final DyeColor secondaryDye;
 
 	// map color
-	public final MaterialColor mapColor;
+	public final MapColor mapColor;
 
 	EnumFlatColorAttributes(
 			final boolean isColor,
 			final boolean isSaturated,
 			final DyeColor dye1,
 			final DyeColor dye2,
-			final MaterialColor mapColor )
+			final MapColor mapColor )
 	{
 		isModifier = !isColor;
 		this.isSaturated = isSaturated;
 		primaryDye = dye1;
-		secondaryDye = dye1;
+		secondaryDye = dye2;
 		this.mapColor = mapColor;
 	}
 
@@ -60,7 +60,7 @@ public enum EnumFlatColorAttributes
 			final boolean isColor,
 			final boolean isSaturated,
 			final DyeColor dye,
-			final MaterialColor mapColor )
+			final MapColor mapColor )
 	{
 		isModifier = !isColor;
 		this.isSaturated = isSaturated;

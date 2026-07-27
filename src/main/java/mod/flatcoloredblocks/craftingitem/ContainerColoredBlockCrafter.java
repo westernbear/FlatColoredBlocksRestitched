@@ -1,159 +1,148 @@
 package mod.flatcoloredblocks.craftingitem;
 
 import mod.flatcoloredblocks.FlatColoredBlocks;
-import mod.flatcoloredblocks.ModUtil;
-import mod.flatcoloredblocks.network.NetworkRouter;
-import mod.flatcoloredblocks.network.packets.ScrolingGuiPacket;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.MenuProvider;
+import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
-import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
+public final class ContainerColoredBlockCrafter extends AbstractContainerMenu {
+	public static final int OUTPUT_COLUMNS = 9;
+	public static final int OUTPUT_ROWS = 7;
+	public static final int OUTPUT_SLOTS = OUTPUT_COLUMNS * OUTPUT_ROWS;
+	public static final int PLAYER_START = OUTPUT_SLOTS;
+	public static final int PLAYER_END = PLAYER_START + 36;
 
-/**
- * Container for for crafting item's gui, manages scroll communication slots,
- * and shift clicking.
- */
-public class ContainerColoredBlockCrafter extends AbstractContainerMenu implements MenuProvider
-{
-
-	final Player thePlayer;
-	final InventoryColoredBlockCrafter craftinginv;
+	private final Player player;
+	private final Inventory playerInventory;
+	private final InventoryColoredBlockCrafter craftingInventory;
+	private int scrollRow;
 
 	public ContainerColoredBlockCrafter(
-			final int id,
-			final Player player,
-			final Level world,
-			final int x,
-			final int y,
-			final int z )
-	{
-		super(FlatColoredBlocks.instance.containerType, id);
-		thePlayer = player;
-		craftinginv = new InventoryColoredBlockCrafter( thePlayer, this );
-		try {
-			craftinginv.updateContents();
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+			int containerId, Inventory playerInventory, CraftingSettings settings) {
+		super(FlatColoredBlocks.CRAFTER_MENU, containerId);
+		this.player = playerInventory.player;
+		this.playerInventory = playerInventory;
+		this.craftingInventory = new InventoryColoredBlockCrafter(player, this, settings);
+		this.craftingInventory.refreshOptions();
 
-		final Inventory playerInventory = player.getInventory();
-		final int i = ( 7 - 4 ) * 18;
-
-		for ( int j = 0; j < 7; ++j )
-		{
-			for ( int k = 0; k < 9; ++k )
-			{
-				addSlot( new SlotColoredBlockCrafter( craftinginv, craftinginv, k + j * 9, 8 + k * 18, 18 + j * 18 ) );
+		for (int row = 0; row < OUTPUT_ROWS; row++) {
+			for (int column = 0; column < OUTPUT_COLUMNS; column++) {
+				addSlot(new SlotColoredBlockCrafter(
+						craftingInventory,
+						row * OUTPUT_COLUMNS + column,
+						8 + column * 18,
+						18 + row * 18));
 			}
 		}
 
-		for ( int l = 0; l < 3; ++l )
-		{
-			for ( int j1 = 0; j1 < 9; ++j1 )
-			{
-				addSlot( new SlotChangeDetect( playerInventory, craftinginv, j1 + l * 9 + 9, 8 + j1 * 18, 104 + l * 18 + i ) );
+		for (int row = 0; row < 3; row++) {
+			for (int column = 0; column < 9; column++) {
+				addSlot(new SlotChangeDetect(
+						playerInventory,
+						craftingInventory,
+						column + row * 9 + 9,
+						8 + column * 18,
+						158 + row * 18));
 			}
 		}
-
-		for ( int i1 = 0; i1 < 9; ++i1 )
-		{
-			addSlot( new SlotChangeDetect( playerInventory, craftinginv, i1, 8 + i1 * 18, 162 + i ) );
+		for (int column = 0; column < 9; column++) {
+			addSlot(new SlotChangeDetect(
+					playerInventory,
+					craftingInventory,
+					column,
+					8 + column * 18,
+					216));
 		}
 	}
 
 	@Override
-	public boolean stillValid(
-			final Player playerIn )
-	{
+	public boolean stillValid(Player player) {
 		return true;
 	}
 
 	@Override
-	public ItemStack quickMoveStack(
-			final Player playerIn,
-			final int index )
-	{
-		int emptySlots = 0;
-
-		for ( final Slot s : slots )
-		{
-			if ( !( s instanceof SlotColoredBlockCrafter ) )
-			{
-				if ( !s.hasItem() )
-				{
-					emptySlots++;
-				}
-			}
+	public boolean clickMenuButton(Player player, int buttonId) {
+		if (buttonId < 0 || buttonId > maxScrollRows()) {
+			return false;
 		}
-
-		if ( emptySlots > 0 )
-		{
-			final Slot s = slots.get( index );
-			if ( s instanceof SlotColoredBlockCrafter )
-			{
-				final ItemStack which = s.getItem();
-				final ItemStack out = craftinginv.craftItem( which, 64, false );
-
-				moveItemStackTo( out, 7 * 9, slots.size(), true );
-			}
-		}
-
-		return ModUtil.getEmptyStack();
+		setScrollRow(buttonId);
+		return true;
 	}
 
-	float scrollPercent = 0;
-	float originalScroll = 0;
-
-	public void setScroll(
-			final float currentScroll ) throws IOException {
-		scrollPercent = currentScroll;
-
-		final int rowsOfScrolling = Math.max( ( craftinginv.getContainerSize() + 8 ) / 9 - 7, 0 );
-		craftinginv.offset = Math.round( rowsOfScrolling * currentScroll ) * 9;
-
-		if ( Math.abs( originalScroll - currentScroll ) > 0.00001 )
-		{
-			if ( thePlayer.level.isClientSide )
-			{
-				final ScrolingGuiPacket sgp = new ScrolingGuiPacket(PacketByteBufs.empty());
-				originalScroll = sgp.scroll = scrollPercent;
-
-				// send...
-				NetworkRouter.instance.sendToServer( sgp );
-			}
-		}
+	public void setScrollRow(int row) {
+		scrollRow = Math.clamp(row, 0, maxScrollRows());
+		craftingInventory.setOffset(scrollRow * OUTPUT_COLUMNS);
 	}
 
-	public int getItemCount()
-	{
-		return craftinginv.getContainerSize();
+	void clampScroll() {
+		setScrollRow(scrollRow);
 	}
 
-	@Environment(EnvType.CLIENT)
-	public static Object getGuiClass()
-	{
-		return GuiColoredBlockCrafter.class;
+	public int getScrollRow() {
+		return scrollRow;
+	}
+
+	public int maxScrollRows() {
+		return Math.max((craftingInventory.optionCount() + OUTPUT_COLUMNS - 1) / OUTPUT_COLUMNS - OUTPUT_ROWS, 0);
+	}
+
+	public int getItemCount() {
+		return craftingInventory.optionCount();
 	}
 
 	@Override
-	public Component getDisplayName() {
-		return null;
+	public ItemStack quickMoveStack(Player player, int index) {
+		if (index < 0 || index >= OUTPUT_SLOTS) {
+			return ItemStack.EMPTY;
+		}
+		Slot slot = slots.get(index);
+		ItemStack target = slot.getItem();
+		if (target.isEmpty()) {
+			return ItemStack.EMPTY;
+		}
+
+		ItemStack oneCraft = craftingInventory.craft(target, 1, true);
+		if (oneCraft.isEmpty()) {
+			return ItemStack.EMPTY;
+		}
+		int capacity = playerCapacity(oneCraft);
+		int crafts = Math.min(64 / oneCraft.getCount(), capacity / oneCraft.getCount());
+		ItemStack crafted = craftingInventory.craft(target, crafts, false);
+		if (crafted.isEmpty()) {
+			return ItemStack.EMPTY;
+		}
+
+		ItemStack result = crafted.copy();
+		moveItemStackTo(crafted, PLAYER_START, PLAYER_END, true);
+		if (!crafted.isEmpty()) {
+			player.drop(crafted, false);
+		}
+		return result;
 	}
 
-	@Nullable
+	private int playerCapacity(ItemStack target) {
+		int capacity = 0;
+		for (int slot = 0; slot < Math.min(36, playerInventory.getContainerSize()); slot++) {
+			ItemStack present = playerInventory.getItem(slot);
+			if (present.isEmpty()) {
+				capacity += target.getMaxStackSize();
+			} else if (ItemStack.isSameItemSameComponents(present, target)) {
+				capacity += Math.max(0, present.getMaxStackSize() - present.getCount());
+			}
+		}
+		return capacity;
+	}
+
+	public InventoryColoredBlockCrafter craftingInventory() {
+		return craftingInventory;
+	}
+
 	@Override
-	public AbstractContainerMenu createMenu(int i, Inventory inventory, Player player) {
-		return this;
+	public void slotsChanged(Container container) {
+		super.slotsChanged(container);
+		craftingInventory.refreshOptions();
 	}
 }

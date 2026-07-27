@@ -1,14 +1,15 @@
 package mod.flatcoloredblocks.craftingitem;
 
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 import mod.flatcoloredblocks.FlatColoredBlocks;
-import mod.flatcoloredblocks.ModUtil;
-import mod.flatcoloredblocks.RegistryHelper;
 import mod.flatcoloredblocks.block.BlockFlatColored;
 import mod.flatcoloredblocks.block.EnumFlatBlockType;
 import mod.flatcoloredblocks.block.EnumFlatColorAttributes;
-import net.minecraft.core.MappedRegistry;
-import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceLocation;
+import net.fabricmc.fabric.api.tag.convention.v2.ConventionalItemTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Inventory;
@@ -19,424 +20,224 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
-import java.io.IOException;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.stream.Collectors;
+public final class InventoryColoredBlockCrafter implements Container {
+	private final Player player;
+	private final ContainerColoredBlockCrafter menu;
+	private final CraftingSettings settings;
+	private final List<ItemStack> options = new ArrayList<>();
+	private int offset;
 
-/**
- * Generates and Crafts items that are seen in the crafting item's gui.
- */
-public class InventoryColoredBlockCrafter implements Container
-{
-
-	private final Player thePlayer;
-	private final ContainerColoredBlockCrafter craftingContainer;
-
-	private final ArrayList<ItemStack> options = new ArrayList<>();
-	public int offset = 0;
-
-	public InventoryColoredBlockCrafter(
-			final Player thePlayer,
-			final ContainerColoredBlockCrafter coloredCrafterContainer )
-	{
-		this.thePlayer = thePlayer;
-		craftingContainer = coloredCrafterContainer;
+	InventoryColoredBlockCrafter(
+			Player player, ContainerColoredBlockCrafter menu, CraftingSettings settings) {
+		this.player = player;
+		this.menu = menu;
+		this.settings = settings;
 	}
 
-	public static HashMap<Object, Collection<Item>> getDyeList()
-	{
-		final HashMap<Object, Collection<Item>> dyeList = new HashMap<>();
+	void refreshOptions() {
+		EnumSet<DyeColor> dyes = EnumSet.noneOf(DyeColor.class);
+		EnumSet<EnumFlatBlockType> bases = EnumSet.noneOf(EnumFlatBlockType.class);
+		Inventory inventory = player.getInventory();
 
-		tagIntoList( dyeList, DyeColor.BLACK, getTagKey("black_dyes"));
-		tagIntoList( dyeList, DyeColor.RED, getTagKey("red_dyes") );
-		tagIntoList( dyeList, DyeColor.GREEN, getTagKey("green_dyes") );
-		tagIntoList( dyeList, DyeColor.BROWN, getTagKey("brown_dyes") );
-		tagIntoList( dyeList, DyeColor.BLUE, getTagKey("blue_dyes") );
-		tagIntoList( dyeList, DyeColor.PURPLE, getTagKey("purple_dyes") );
-		tagIntoList( dyeList, DyeColor.CYAN, getTagKey("cyan_dyes") );
-		tagIntoList( dyeList, DyeColor.LIGHT_GRAY, getTagKey("light_gray_dyes") );
-		tagIntoList( dyeList, DyeColor.GRAY, getTagKey("gray_dyes") );
-		tagIntoList( dyeList, DyeColor.PINK, getTagKey("pink_dyes") );
-		tagIntoList( dyeList, DyeColor.LIME, getTagKey("lime_dyes") );
-		tagIntoList( dyeList, DyeColor.YELLOW, getTagKey("yellow_dyes") );
-		tagIntoList( dyeList, DyeColor.LIGHT_BLUE, getTagKey("light_blue_dyes") );
-		tagIntoList( dyeList, DyeColor.MAGENTA, getTagKey("magenta_dyes") );
-		tagIntoList( dyeList, DyeColor.ORANGE, getTagKey("orange_dyes") );
-		tagIntoList( dyeList, DyeColor.WHITE, getTagKey("white_dyes") );
-		tagIntoList( dyeList, EnumFlatBlockType.NORMAL, getItems( FlatColoredBlocks.instance.config.solidCraftingBlock ) );
-		tagIntoList( dyeList, EnumFlatBlockType.GLOWING, getItems( FlatColoredBlocks.instance.config.glowingCraftingBlock ) );
-		tagIntoList( dyeList, EnumFlatBlockType.TRANSPARENT, getItems( FlatColoredBlocks.instance.config.transparentCraftingBlock ) );
-
-		return dyeList;
-	}
-
-	private static TagKey<Item> getTagKey(String name) {
-		return TagKey.create(Registry.ITEM_REGISTRY, new ResourceLocation("c", name));
-	}
-
-	private static void tagIntoList(
-			HashMap<Object, Collection<Item>> dyeList,
-			Enum<?> e,
-			TagKey<Item> itemList )
-	{
-		dyeList.put( e, RegistryHelper.getItemsFromTag(itemList));
-	}
-
-	private InventorySummary scanPlayerInventory()
-	{
-		final EnumSet<DyeColor> dyes = EnumSet.noneOf( DyeColor.class );
-		final Inventory ip = thePlayer.getInventory();
-
-		final HashMap<Object, Collection<Item>> dyeList = getDyeList();
-		final HashMap<Object, HashSet<ItemCraftingSource>> stacks = new HashMap<Object, HashSet<ItemCraftingSource>>();
-
-		boolean hasCobblestone = false;
-		boolean hasGlowstone = false;
-		boolean hasGlass = false;
-
-		for ( final Entry<Object, Collection<Item>> items : dyeList.entrySet() )
-		{
-			stacks.put( items.getKey(), new HashSet<ItemCraftingSource>() );
+		for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+			ItemStack stack = inventory.getItem(slot);
+			if (stack.isEmpty()) {
+				continue;
+			}
+			for (DyeColor dye : DyeColor.values()) {
+				if (stack.typeHolder().is(dyeTag(dye))) {
+					dyes.add(dye);
+				}
+			}
+			for (EnumFlatBlockType type : EnumFlatBlockType.values()) {
+				if (stack.typeHolder().is(settings.tag(type))) {
+					bases.add(type);
+				}
+			}
 		}
 
-		stacks.put( null, new HashSet<ItemCraftingSource>() );
+		options.clear();
+		for (BlockFlatColored block : FlatColoredBlocks.BLOCKS) {
+			if (!bases.contains(block.getCraftable())) {
+				continue;
+			}
+			int output = settings.output(block.getCraftable());
+			for (int shade = 0; shade < block.getNumberOfShades(); shade++) {
+				BlockState state = block.defaultBlockState().setValue(block.shadeProperty(), shade);
+				if (hasDyes(block.getFlatColorAttributes(state), dyes)) {
+					options.add(block.stackForShade(shade, output));
+				}
+			}
+		}
+		menu.clampScroll();
+	}
 
-		for ( int x = 0; x < ip.getContainerSize(); ++x )
-		{
-			final ItemStack is = ip.getItem( x );
+	private static boolean hasDyes(
+			Set<EnumFlatColorAttributes> attributes, EnumSet<DyeColor> available) {
+		DyeColor alternate = EnumFlatColorAttributes.getAlternateDye(attributes);
+		if (alternate != null && available.contains(alternate)) {
+			return true;
+		}
+		for (EnumFlatColorAttributes attribute : attributes) {
+			if (!available.contains(attribute.primaryDye)
+					|| !available.contains(attribute.secondaryDye)) {
+				return false;
+			}
+		}
+		return true;
+	}
 
-			if ( is != null )
-			{
-				for ( final Entry<Object, Collection<Item>> items : dyeList.entrySet() )
-				{
-					for ( final Item ore : items.getValue() )
-					{
-						if ( is.getItem() == ore )
-						{
+	ItemStack craft(ItemStack target, int attempts, boolean simulate) {
+		if (target.isEmpty() || !(Block.byItem(target.getItem()) instanceof BlockFlatColored block)) {
+			return ItemStack.EMPTY;
+		}
 
-							if ( items.getKey() instanceof DyeColor )
-							{
-								dyes.add( (DyeColor) items.getKey() );
-							}
-							else
-							{
-								if ( items.getKey() == EnumFlatBlockType.NORMAL )
-								{
-									hasCobblestone = true;
-								}
+		int outputPerCraft = settings.output(block.getCraftable());
+		int maxAttempts = Math.min(Math.max(attempts, 0), 64 / outputPerCraft);
+		Inventory inventory = player.getInventory();
+		int[] reserved = new int[inventory.getContainerSize()];
+		Set<EnumFlatColorAttributes> attributes =
+				block.getFlatColorAttributes(block.stateFromStack(target));
+		int crafts = 0;
 
-								if ( items.getKey() == EnumFlatBlockType.TRANSPARENT )
-								{
-									hasGlass = true;
-								}
+		for (; crafts < maxAttempts; crafts++) {
+			int[] trial = reserved.clone();
+			if (!reserve(inventory, settings.tag(block.getCraftable()), trial)) {
+				break;
+			}
 
-								if ( items.getKey() == EnumFlatBlockType.GLOWING )
-								{
-									hasGlowstone = true;
-								}
-							}
-
-							stacks.get( items.getKey() ).add( new ItemCraftingSource( ip, x ) );
-						}
+			DyeColor alternate = EnumFlatColorAttributes.getAlternateDye(attributes);
+			boolean dyesReserved = alternate != null && reserve(inventory, dyeTag(alternate), trial);
+			if (!dyesReserved) {
+				dyesReserved = true;
+				Set<DyeColor> required = new LinkedHashSet<>();
+				for (EnumFlatColorAttributes attribute : attributes) {
+					required.add(attribute.primaryDye);
+					required.add(attribute.secondaryDye);
+				}
+				for (DyeColor dye : required) {
+					if (!reserve(inventory, dyeTag(dye), trial)) {
+						dyesReserved = false;
+						break;
 					}
 				}
 			}
+			if (!dyesReserved) {
+				break;
+			}
+			reserved = trial;
 		}
 
-		return new InventorySummary( hasCobblestone, hasGlowstone, hasGlass, stacks, dyes );
-	}
-
-	private static TagKey<Item> getItems(
-			final String name )
-	{
-		return TagKey.create(Registry.ITEM_REGISTRY, new ResourceLocation( name ) );
-	}
-
-	/**
-	 * recalculate the entire container.
-	 */
-	public void updateContents() throws IOException {
-		options.clear();
-		BlockFlatColored.getAllShades( options );
-
-		final InventorySummary da = scanPlayerInventory();
-		final EnumSet<DyeColor> dyes = da.dyes;
-
-		final Iterator<ItemStack> i = options.iterator();
-		while ( i.hasNext() )
-		{
-			final ItemStack is = i.next();
-			final Block blk = Block.byItem( is.getItem() );
-			final BlockState state = ModUtil.getFlatColoredBlockState( (BlockFlatColored) blk, is );
-
-			final Set<EnumFlatColorAttributes> charistics = ( (BlockFlatColored) blk ).getFlatColorAttributes( state );
-			boolean isGood = true;
-
-			for ( final EnumFlatColorAttributes cc : charistics )
-			{
-				if ( !dyes.contains( cc.primaryDye ) || !dyes.contains( cc.secondaryDye ) )
-				{
-					isGood = false;
+		if (crafts == 0) {
+			return ItemStack.EMPTY;
+		}
+		if (!simulate) {
+			for (int slot = 0; slot < reserved.length; slot++) {
+				if (reserved[slot] > 0) {
+					inventory.removeItem(slot, reserved[slot]);
 				}
 			}
-
-			final DyeColor alternateDye = EnumFlatColorAttributes.getAlternateDye( charistics );
-			if ( alternateDye != null && dyes.contains( alternateDye ) )
-			{
-				isGood = true;
-			}
-
-			if ( !isGood || !da.has( ( (BlockFlatColored) blk ).getCraftable() ) )
-			{
-				i.remove();
-			}
+			inventory.setChanged();
+			refreshOptions();
 		}
-
-		craftingContainer.setScroll( craftingContainer.scrollPercent );
+		return target.copyWithCount(crafts * outputPerCraft);
 	}
 
-	@Override
-	public int getContainerSize()
-	{
+	private static boolean reserve(Inventory inventory, TagKey<Item> tag, int[] reserved) {
+		for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+			ItemStack stack = inventory.getItem(slot);
+			if (!stack.isEmpty()
+					&& stack.typeHolder().is(tag)
+					&& stack.getCount() > reserved[slot]) {
+				reserved[slot]++;
+				return true;
+			}
+		}
+		return false;
+	}
+
+	static TagKey<Item> dyeTag(DyeColor dye) {
+		return switch (dye) {
+			case BLACK -> ConventionalItemTags.BLACK_DYES;
+			case BLUE -> ConventionalItemTags.BLUE_DYES;
+			case BROWN -> ConventionalItemTags.BROWN_DYES;
+			case CYAN -> ConventionalItemTags.CYAN_DYES;
+			case GRAY -> ConventionalItemTags.GRAY_DYES;
+			case GREEN -> ConventionalItemTags.GREEN_DYES;
+			case LIGHT_BLUE -> ConventionalItemTags.LIGHT_BLUE_DYES;
+			case LIGHT_GRAY -> ConventionalItemTags.LIGHT_GRAY_DYES;
+			case LIME -> ConventionalItemTags.LIME_DYES;
+			case MAGENTA -> ConventionalItemTags.MAGENTA_DYES;
+			case ORANGE -> ConventionalItemTags.ORANGE_DYES;
+			case PINK -> ConventionalItemTags.PINK_DYES;
+			case PURPLE -> ConventionalItemTags.PURPLE_DYES;
+			case RED -> ConventionalItemTags.RED_DYES;
+			case WHITE -> ConventionalItemTags.WHITE_DYES;
+			case YELLOW -> ConventionalItemTags.YELLOW_DYES;
+		};
+	}
+
+	void setOffset(int offset) {
+		this.offset = Math.max(0, offset);
+	}
+
+	int optionCount() {
 		return options.size();
 	}
 
 	@Override
-	public ItemStack getItem(
-			int index )
-	{
-
-		index += offset;
-		if ( index < options.size() )
-		{
-			return options.get( index ).copy();
-		}
-
-		return ModUtil.getEmptyStack();
+	public int getContainerSize() {
+		return options.size();
 	}
 
 	@Override
-	public ItemStack removeItem(
-			int index,
-			final int count )
-	{
-
-		index += offset;
-		if ( index < options.size() )
-		{
-			ItemStack out = options.get( index );
-
-			if ( ModUtil.getStackSize( out ) <= 0 )
-			{
-				out = null;
-			}
-
-			return out;
-		}
-
-		return ModUtil.getEmptyStack();
-	}
-
-	public ItemStack craftItem(
-			final ItemStack reqItem,
-			final int count,
-			final boolean simulate )
-	{
-		if ( ModUtil.isEmpty( reqItem ) )
-		{
-			return ModUtil.getEmptyStack();
-		}
-
-		int outAmount = 0;
-
-		final InventorySummary da = scanPlayerInventory();
-		final Block blk = Block.byItem( reqItem.getItem() );
-		final BlockState state = ModUtil.getFlatColoredBlockState( (BlockFlatColored) blk, reqItem );
-
-		final Set<EnumFlatColorAttributes> charistics = ( (BlockFlatColored) blk ).getFlatColorAttributes( state );
-		final Object Craftable = ( (BlockFlatColored) blk ).getCraftable();
-		final HashSet<DyeColor> requiredDyes = new HashSet<DyeColor>();
-
-		final int craftAmount = Craftable instanceof EnumFlatBlockType ? ( (EnumFlatBlockType) Craftable ).getOutputCount() : 1;
-
-		final DyeColor alternateDye = EnumFlatColorAttributes.getAlternateDye( charistics );
-		final HashSet<DyeColor> alternateSet = new HashSet<DyeColor>();
-
-		if ( alternateDye != null )
-		{
-			alternateSet.add( alternateDye );
-		}
-
-		for ( final EnumFlatColorAttributes cc : charistics )
-		{
-			requiredDyes.add( cc.primaryDye );
-			requiredDyes.add( cc.secondaryDye );
-		}
-
-		for ( int x = 0; x < count && outAmount + craftAmount <= 64; ++x )
-		{
-			boolean isGood = true;
-
-			final ItemCraftingSource isx = findItem( da.stacks.get( Craftable ), simulate );
-			if ( isx == null )
-			{
-				isGood = false;
-			}
-
-			HashSet<DyeColor> usedSet = alternateSet;
-			availableDyeTest:
-			{
-
-				// test to see if there is an alternate, and if there is, see if
-				// the player has one...
-				if ( alternateDye != null )
-				{
-					final ItemCraftingSource is = findItem( da.stacks.get( alternateDye ), simulate );
-					if ( is != null )
-					{
-						break availableDyeTest;
-					}
-				}
-
-				// no alternate, try standard set.
-				usedSet = requiredDyes;
-				for ( final DyeColor dye : requiredDyes )
-				{
-					final ItemCraftingSource is = findItem( da.stacks.get( dye ), simulate );
-					if ( is == null )
-					{
-						isGood = false;
-					}
-				}
-			}
-
-			if ( isGood && isx != null )
-			{
-				for ( final DyeColor dye : usedSet )
-				{
-					final ItemCraftingSource is = findItem( da.stacks.get( dye ), simulate );
-
-					is.consume( 1 );
-				}
-
-				isx.consume( 1 );
-				outAmount += craftAmount;
-			}
-			else
-			{
-				break;
-			}
-		}
-
-		try {
-			updateContents();
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-
-		if ( outAmount <= 0 )
-		{
-			return ModUtil.getEmptyStack();
-		}
-
-		final ItemStack out = reqItem.copy();
-		ModUtil.setStackSize( out, outAmount );
-
-		return out;
-	}
-
-	private ItemCraftingSource findItem(
-			final HashSet<ItemCraftingSource> hashSet,
-			final boolean simulate )
-	{
-		for ( final ItemCraftingSource src : hashSet )
-		{
-			src.simulate = simulate;
-			final ItemStack is = src.getStack();
-			if ( is != null && ModUtil.getStackSize( is ) > 0 )
-			{
-				return src;
-			}
-		}
-
-		return null;
+	public boolean isEmpty() {
+		return options.isEmpty();
 	}
 
 	@Override
-	public ItemStack removeItemNoUpdate(
-			final int index )
-	{
-		return ModUtil.getEmptyStack();
+	public ItemStack getItem(int index) {
+		int option = index + offset;
+		return option >= 0 && option < options.size()
+				? options.get(option).copy()
+				: ItemStack.EMPTY;
 	}
 
 	@Override
-	public void setItem(
-			final int index,
-			final ItemStack stack )
-	{
-
+	public ItemStack removeItem(int index, int count) {
+		return getItem(index);
 	}
 
 	@Override
-	public int getMaxStackSize()
-	{
-		return 0;
+	public ItemStack removeItemNoUpdate(int index) {
+		return ItemStack.EMPTY;
 	}
 
 	@Override
-	public void setChanged()
-	{
-
+	public void setItem(int index, ItemStack stack) {
 	}
 
 	@Override
-	public boolean stillValid(
-			final Player player )
-	{
+	public int getMaxStackSize() {
+		return 64;
+	}
+
+	@Override
+	public void setChanged() {
+	}
+
+	@Override
+	public boolean stillValid(Player player) {
 		return true;
 	}
 
 	@Override
-	public void startOpen(
-			final Player player )
-	{
-
-	}
-
-	@Override
-	public void stopOpen(
-			final Player player )
-	{
-
-	}
-
-	@Override
-	public boolean canPlaceItem(
-			final int index,
-			final ItemStack stack )
-	{
+	public boolean canPlaceItem(int index, ItemStack stack) {
 		return false;
 	}
 
 	@Override
-	public void clearContent()
-	{
+	public void clearContent() {
 		options.clear();
 	}
-
-	@Override
-	public boolean isEmpty() // whatever this is...
-	{
-		for ( final ItemStack itemstack : options )
-		{
-			if ( !itemstack.isEmpty() )
-			{
-				return false;
-			}
-		}
-
-		return true;
-	}
-
 }

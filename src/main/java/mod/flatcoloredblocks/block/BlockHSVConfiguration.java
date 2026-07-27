@@ -213,11 +213,12 @@ public class BlockHSVConfiguration
 	public int hsvFromNumber(
 			int shadeNum )
 	{
+		final boolean grayscale = shadeNum >= finalShades;
 		int v = 0;
 		int s = 0;
 		int h = 0;
 
-		if ( shadeNum >= finalShades )
+		if ( grayscale )
 		{
 			v = ( shadeNum - finalShades ) % MAX_SHADE_VALUE;
 			s = 0;
@@ -239,7 +240,7 @@ public class BlockHSVConfiguration
 		}
 
 		v = shadeConvertValue[v];
-		s = shadeNum >= finalShades ? 0 : shadeConvertSat[s];
+		s = grayscale ? 0 : shadeConvertSat[s];
 		h = shadeConvertHue[h];
 
 		return combine( h, s, v );

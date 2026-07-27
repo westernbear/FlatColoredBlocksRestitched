@@ -1,197 +1,106 @@
 package mod.flatcoloredblocks.block;
 
+import java.util.Locale;
+import java.util.Set;
+import java.util.function.Consumer;
 import mod.flatcoloredblocks.FlatColoredBlocks;
-import mod.flatcoloredblocks.ModUtil;
-import mod.flatcoloredblocks.RegistryItem;
-import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.block.state.BlockState;
 
-import java.util.List;
-import java.util.Set;
+public final class ItemBlockFlatColored extends BlockItem {
+	public ItemBlockFlatColored(BlockFlatColored block, Item.Properties properties) {
+		super(block, properties);
+	}
 
-public class ItemBlockFlatColored extends BlockItem implements RegistryItem
-{
-
-	public BlockFlatColored getColoredBlock()
-	{
+	private BlockFlatColored coloredBlock() {
 		return (BlockFlatColored) getBlock();
 	}
 
-	private String getColorPrefix(
-			final Set<EnumFlatColorAttributes> which )
-	{
-		if ( which.contains( EnumFlatColorAttributes.dark ) )
-		{
-			return "flatcoloredblocks.dark";
-		}
-
-		if ( which.contains( EnumFlatColorAttributes.light ) )
-		{
-			return "flatcoloredblocks.light";
-		}
-
-		return "flatcoloredblocks.";
-	}
-
-	private String getColorHueName(
-			final Set<EnumFlatColorAttributes> characteristics )
-	{
-		for ( final EnumFlatColorAttributes c : characteristics )
-		{
-			if ( !c.isModifier )
-			{
-				return c.name();
-			}
-		}
-
-		return EnumFlatColorAttributes.black.name();
-	}
-
-	public ItemBlockFlatColored(
-			final Block block )
-	{
-		super( block, ( new Item.Properties() ).tab( FlatColoredBlocks.instance.creativeTab ) );
-		setRegistryName( ((RegistryItem) block).getRegistryName() );
+	@Override
+	public ItemStack getDefaultInstance() {
+		return coloredBlock().stackForShade(0, 1);
 	}
 
 	@Override
-	public Component getName(
-			ItemStack stack )
-	{
-		final BlockState state = ModUtil.getFlatColoredBlockState( getColoredBlock(), stack );
-		final int shadeNum = getColoredBlock().getShadeNumber( state );
+	public Component getName(ItemStack stack) {
+		BlockFlatColored block = coloredBlock();
+		BlockState state = block.stateFromStack(stack);
+		Set<EnumFlatColorAttributes> attributes = block.getFlatColorAttributes(state);
+		String prefix = attributes.contains(EnumFlatColorAttributes.dark)
+				? "flatcoloredblocks.dark"
+				: attributes.contains(EnumFlatColorAttributes.light)
+						? "flatcoloredblocks.light"
+						: "flatcoloredblocks.";
+		String hue = attributes.stream()
+				.filter(attribute -> !attribute.isModifier)
+				.findFirst()
+				.orElse(EnumFlatColorAttributes.black)
+				.name();
 
-		final Set<EnumFlatColorAttributes> colorChars = getColoredBlock().getFlatColorAttributes( state );
-
-		final String type = getTypeLocalization();
-		final String prefix = getColorPrefix( colorChars );
-		final String hue = getColorHueName( colorChars );
-
-		return Component.literal( type + ModUtil.translateToLocal( prefix + hue + ".name" ) + " " + ModUtil.translateToLocal( "flatcoloredblocks.Shade.name" ) + shadeNum );
-	}
-
-	private String getTypeLocalization()
-	{
-		switch ( getColoredBlock().getType() )
-		{
-			case GLOWING:
-				return ModUtil.translateToLocal( "flatcoloredblocks.Glowing.name" ) + " ";
-			case TRANSPARENT:
-				return ModUtil.translateToLocal( "flatcoloredblocks.Transparent.name" ) + " ";
-			default:
-				return "";
+		Component name = Component.translatable(prefix + hue + ".name");
+		if (block.getType() == EnumFlatBlockType.TRANSPARENT) {
+			name = Component.translatable("flatcoloredblocks.Transparent.name").append(" ").append(name);
+		} else if (block.getType() == EnumFlatBlockType.GLOWING) {
+			name = Component.translatable("flatcoloredblocks.Glowing.name").append(" ").append(name);
 		}
+		return name.copy()
+				.append(" ")
+				.append(Component.translatable("flatcoloredblocks.Shade.name"))
+				.append(Integer.toString(block.getShadeNumber(state)));
 	}
 
 	@Override
 	public void appendHoverText(
 			ItemStack stack,
-			Level worldIn,
-			List<Component> tooltip,
-			TooltipFlag flagIn )
-	{
-		final BlockState state = ModUtil.getFlatColoredBlockState( getColoredBlock(), stack );
-		final BlockFlatColored blk = getColoredBlock();
+			Item.TooltipContext context,
+			TooltipDisplay display,
+			Consumer<Component> output,
+			TooltipFlag flag) {
+		BlockFlatColored block = coloredBlock();
+		int hsv = block.hsvFromState(block.stateFromStack(stack));
+		int rgb = ConversionHSV2RGB.toRGB(hsv);
+		int red = rgb >> 16 & 0xff;
+		int green = rgb >> 8 & 0xff;
+		int blue = rgb & 0xff;
 
-		final int hsv = blk.hsvFromState( state );
-		final int rgb = ConversionHSV2RGB.toRGB( hsv );
-
-		if ( FlatColoredBlocks.instance.config.showRGB )
-		{
-			addColor( ColorFormat.RGB, rgb, tooltip );
+		if (FlatColoredBlocks.CONFIG.showRGB) {
+			line(output, "flatcoloredblocks.tooltips.rgb", red + " " + green + " " + blue);
+		}
+		if (FlatColoredBlocks.CONFIG.showHEX) {
+			line(output, "flatcoloredblocks.tooltips.hex", String.format(Locale.ROOT, "#%06X", rgb));
+		}
+		if (FlatColoredBlocks.CONFIG.showHSV) {
+			line(
+					output,
+					"flatcoloredblocks.tooltips.hsv",
+					(360 * (hsv >> 16 & 0xff) / 255)
+							+ "° "
+							+ (100 * (hsv >> 8 & 0xff) / 255)
+							+ "% "
+							+ (100 * (hsv & 0xff) / 255)
+							+ "%");
 		}
 
-		if ( FlatColoredBlocks.instance.config.showHEX )
-		{
-			addColor( ColorFormat.HEX, rgb, tooltip );
+		if (FlatColoredBlocks.CONFIG.showLight && block.lightValue > 0) {
+			line(output, "flatcoloredblocks.tooltips.lightvalue", block.lightValue + "/15");
+		}
+		if (FlatColoredBlocks.CONFIG.showOpacity && block.opacity < 100) {
+			line(output, "flatcoloredblocks.tooltips.opacity", block.opacity + "%");
 		}
 
-		if ( FlatColoredBlocks.instance.config.showHSV )
-		{
-			addColor( ColorFormat.HSV, hsv, tooltip );
-		}
-
-		if ( FlatColoredBlocks.instance.config.showLight && blk.lightValue > 0 )
-		{
-			final StringBuilder sb = new StringBuilder();
-			sb.append( ModUtil.translateToLocal( "flatcoloredblocks.tooltips.lightvalue" ) ).append( ' ' );
-			sb.append( blk.lightValue ).append( ModUtil.translateToLocal( "flatcoloredblocks.tooltips.lightValueUnit" ) );
-			tooltip.add( Component.literal( sb.toString() ) );
-		}
-
-		if ( FlatColoredBlocks.instance.config.showOpacity && blk.opacity < 100 )
-		{
-			final StringBuilder sb = new StringBuilder();
-			sb.append( ModUtil.translateToLocal( "flatcoloredblocks.tooltips.opacity" ) ).append( ' ' );
-			sb.append( blk.opacity ).append( ModUtil.translateToLocal( "flatcoloredblocks.tooltips.percent" ) );
-			tooltip.add( Component.literal( sb.toString() ) );
-		}
-
-		super.appendHoverText( stack, worldIn, tooltip, flagIn );
+		super.appendHoverText(stack, context, display, output, flag);
 	}
 
-	public static enum ColorFormat
-	{
-		HEX, RGB, HSV
-	};
-
-	private void addColor(
-			final ColorFormat Format,
-			final int value,
-			final List<Component> tooltip )
-	{
-		final int r_h = value >> 16 & 0xff;
-		final int g_s = value >> 8 & 0xff;
-		final int b_v = value & 0xff;
-
-		final StringBuilder sb = new StringBuilder();
-
-		if ( Format == ColorFormat.HEX )
-		{
-			sb.append( ModUtil.translateToLocal( "flatcoloredblocks.tooltips.hex" ) ).append( ' ' );
-			sb.append( "#" ).append( hexPad( Integer.toString( r_h, 16 ) ) ).append( hexPad( Integer.toString( g_s, 16 ) ) ).append( hexPad( Integer.toString( b_v, 16 ) ) );
-		}
-		else if ( Format == ColorFormat.RGB )
-		{
-			sb.append( ModUtil.translateToLocal( "flatcoloredblocks.tooltips.rgb" ) ).append( ' ' );
-			sb.append( ChatFormatting.RED ).append( r_h ).append( ' ' );
-			sb.append( ChatFormatting.GREEN ).append( g_s ).append( ' ' );
-			sb.append( ChatFormatting.BLUE ).append( b_v );
-		}
-		else
-		{
-			sb.append( ModUtil.translateToLocal( "flatcoloredblocks.tooltips.hsv" ) ).append( ' ' );
-			sb.append( 360 * r_h / 255 ).append( ModUtil.translateToLocal( "flatcoloredblocks.tooltips.deg" ) + ' ' );
-			sb.append( 100 * g_s / 255 ).append( ModUtil.translateToLocal( "flatcoloredblocks.tooltips.percent" ) + ' ' );
-			sb.append( 100 * b_v / 255 ).append( ModUtil.translateToLocal( "flatcoloredblocks.tooltips.percent" ) );
-		}
-
-		tooltip.add( Component.literal( sb.toString() ) );
+	private static void line(Consumer<Component> output, String key, String value) {
+		output.accept(Component.translatable(key).append(" ").append(value));
 	}
 
-	public static String hexPad(
-			String string )
-	{
-		if ( string.length() == 0 )
-			return "00";
-		if ( string.length() == 1 )
-			return "0" + string;
-		return string;
+	public static String hexPad(String value) {
+		return value.length() < 2 ? "0" + value : value;
 	}
-
-	public int getColorFromItemStack(
-			final ItemStack stack,
-			final int renderPass )
-	{
-		final BlockState state = ModUtil.getFlatColoredBlockState( getColoredBlock(), stack );
-		return getColoredBlock().colorFromState( state );
-	}
-
 }

@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " R ",
+    "VIG",
+    " C "
+  ],
+  "key": {
+    "R": "#c:dyes/red",
+    "V": "#c:dyes/purple",
+    "I": "#c:ingots/iron",
+    "G": "#c:dyes/green",
+    "C": "#c:dyes/cyan"
+  },
+  "result": {
+    "id": "flatcoloredblocks:coloredcraftingitem"
+  }
+}

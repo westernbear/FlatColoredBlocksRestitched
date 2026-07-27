@@ -50,7 +50,7 @@ public class ModUtil
 			BlockFlatColored blk,
 			ItemStack stack )
 	{
-		return blk.getstateForStack( stack );
+		return blk.stateFromStack( stack );
 	}
 
 }

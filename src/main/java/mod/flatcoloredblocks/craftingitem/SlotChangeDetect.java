@@ -3,33 +3,22 @@ package mod.flatcoloredblocks.craftingitem;
 import net.minecraft.world.Container;
 import net.minecraft.world.inventory.Slot;
 
-import java.io.IOException;
+final class SlotChangeDetect extends Slot {
+	private final InventoryColoredBlockCrafter craftingInventory;
 
-public class SlotChangeDetect extends Slot
-{
-
-	InventoryColoredBlockCrafter secondInv;
-
-	public SlotChangeDetect(
-			final Container inv,
-			final InventoryColoredBlockCrafter secondInv,
-			final int index,
-			final int xPosition,
-			final int yPosition )
-	{
-		super( inv, index, xPosition, yPosition );
-		this.secondInv = secondInv;
+	SlotChangeDetect(
+			Container inventory,
+			InventoryColoredBlockCrafter craftingInventory,
+			int index,
+			int x,
+			int y) {
+		super(inventory, index, x, y);
+		this.craftingInventory = craftingInventory;
 	}
 
 	@Override
-	public void setChanged()
-	{
+	public void setChanged() {
 		super.setChanged();
-		try {
-			secondInv.updateContents();
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+		craftingInventory.refreshOptions();
 	}
-
 }

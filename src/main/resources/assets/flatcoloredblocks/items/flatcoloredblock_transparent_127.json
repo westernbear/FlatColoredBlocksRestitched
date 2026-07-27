@@ -1,0 +1,13 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "flatcoloredblocks:block/flatcoloredblock_semi_glass",
+    "tints": [
+      {
+        "type": "minecraft:custom_model_data",
+        "index": 0,
+        "default": 3352616
+      }
+    ]
+  }
+}
