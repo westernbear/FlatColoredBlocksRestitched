@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: gradle
+
+      - name: Verify tag version
+        run: grep -Fqx "mod_version=${GITHUB_REF_NAME#v}" gradle.properties
+
+      - name: Build
+        run: bash gradlew build --no-daemon
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # ponytail: single-loader build; collect multiple JARs if this becomes multiloader.
+          artifact="$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' -print -quit)"
+          test -f "$artifact"
+          gh release create "$GITHUB_REF_NAME" "$artifact" --generate-notes --verify-tag --title "$GITHUB_REF_NAME"

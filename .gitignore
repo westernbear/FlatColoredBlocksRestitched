@@ -32,3 +32,4 @@ run
 libs/*
 !libs/chiselsandbits-1.3.9+26.2.jar
 graphify-out/
+/.codex/
