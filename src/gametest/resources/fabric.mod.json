@@ -16,6 +16,6 @@
     "fabricloader": "*",
     "fabric-api": "*",
     "flatcoloredblocksfabric": "*",
-    "chiselsandbits": "=1.3.10+26.2"
+    "chiselsandbits": ">=1.3.10+26.2"
   }
 }
