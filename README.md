@@ -10,12 +10,11 @@ Requirements
 - Minecraft 26.2 and Java 25
 - Fabric Loader 0.19.3 or newer
 - Fabric API 0.155.2+26.2 or newer
-- Chisels & Bits 1.3.9+26.2 from the pinned westernbear source commit
+- Chisels & Bits 1.3.10+26.2 or newer
 - Fzzy Config 0.7.6+26.2 or newer
 
-Build with `bash gradlew clean build`. The pinned Chisels & Bits development JAR is in
-`libs/`; it remains a separate runtime mod and is not bundled into the Flat
-Colored Blocks JAR.
+Build with `bash gradlew clean build`. Chisels & Bits is a separate runtime dependency
+and is not bundled into the Flat Colored Blocks JAR.
 
 Tests
 -----
