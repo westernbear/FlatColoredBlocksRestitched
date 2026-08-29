@@ -3,6 +3,9 @@
 /.gradle/
 /.settings/
 /build/
+common/build/
+fabric/build/
+neoforge/build/
 /.classpath
 /config/
 logs/
@@ -29,7 +32,13 @@ FlatColoredBlocks.iml
 FlatColoredBlocks.ipr
 FlatColoredBlocks.iws
 run
+**/run/
+**/run-client/
+**/run-server/
+**/build/gametest/
+**/build/client-gametest/
 libs/*
 !libs/chiselsandbits-1.3.9+26.2.jar
 graphify-out/
 /.codex/
+*.log

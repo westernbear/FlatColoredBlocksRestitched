@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "flatcoloredblocksfabric_test",
+  "name": "Flat Colored Blocks Tests",
+  "version": "1",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-gametest": [
+      "mod.flatcoloredblocks.gametest.FlatColoredBlocksGameTests"
+    ],
+    "fabric-client-gametest": [
+      "mod.flatcoloredblocks.gametest.FlatColoredBlocksClientGameTest"
+    ]
+  },
+  "depends": {
+    "fabricloader": "*",
+    "fabric-api": "*",
+    "flatcoloredblocksfabric": "*"
+  },
+  "suggests": {
+    "chiselsandbits": "*"
+  }
+}

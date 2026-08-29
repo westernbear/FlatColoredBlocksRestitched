@@ -8,24 +8,30 @@ Requirements
 ------------
 
 - Minecraft 26.2 and Java 25
-- Fabric Loader 0.19.3 or newer
-- Fabric API 0.155.2+26.2 or newer
-- Chisels & Bits 1.3.10+26.2 or newer
-- Fzzy Config 0.7.6+26.2 or newer
+- Fabric Loader 0.19.3+ **or** NeoForge 26.2+
+- Architectury API 21.0.7+
+- Fabric builds also need Fabric API 0.155.2+26.2+
+- Chisels & Bits is **optional** (soft dependency). When present, colored blocks are forced chiselable and legacy C&B remaps apply.
 
-Build with `bash gradlew clean build`. Chisels & Bits is a separate runtime dependency
-and is not bundled into the Flat Colored Blocks JAR.
+Build with `bash gradlew clean build`. Artifacts:
+
+- `fabric/build/libs/flatcoloredblocksrestitched-fabric-*.jar`
+- `neoforge/build/libs/flatcoloredblocksrestitched-neoforge-*.jar`
+
+Addon authors can depend on the mod jar and use `mod.flatcoloredblocks.api.FlatColoredBlocksAPI`
+(read lookups, callbacks, and `registerColorType` before Architectury `LifecycleEvent.SETUP`).
+
 
 Tests
 -----
 
-- `bash gradlew check` validates all 1,290 palette entries and config persistence.
-- `bash gradlew runGametest` validates registration, placement, drops, Crafter
-  clicks/shift-crafting, export, recipes, beacon colors, legacy world/C&B data,
-  and Chisels & Bits support on a server.
-- `xvfb-run -a bash gradlew runClientGametest` validates client models, tints,
-  mixins, Crafter scrolling/screenshots, and an actual Chisels & Bits chisel
-  operation in a headless client.
+- `bash gradlew :common:check` validates all 1,290 palette entries and config persistence.
+- `bash gradlew :fabric:runGametest` validates registration, placement, drops, Crafter
+  clicks/shift-crafting, export, recipes, beacon colors, API surface, legacy world/C&B data
+  (when C&B is present), and Chisels & Bits support on a server.
+- `xvfb-run -a bash gradlew :fabric:runClientGametest` validates client models, tints,
+  mixins, Crafter scrolling/screenshots, and (when C&B is present) an actual chisel operation.
+- NeoForge: `bash gradlew :neoforge:build` (GameTests may be added later; Fabric remains the UI/UX gate).
 
 
 Want to play with the mod?

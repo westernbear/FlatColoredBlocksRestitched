@@ -1,0 +1,41 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "MIT"
+
+[[mods]]
+modId = "flatcoloredblocks"
+version = "${version}"
+displayName = "Flat Colored Blocks Restitched"
+description = "Simple colored, transparent, and glowing building blocks with 1,290 shades each."
+authors = "AlgorithmX2, BluSpring"
+
+[[mixins]]
+config = "flatcoloredblocks.mixins.json"
+
+[[dependencies.flatcoloredblocks]]
+modId = "neoforge"
+type = "required"
+versionRange = "[26.2,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.flatcoloredblocks]]
+modId = "minecraft"
+type = "required"
+versionRange = "[26.2,26.3)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.flatcoloredblocks]]
+modId = "architectury"
+type = "required"
+versionRange = "[21.0.7,)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.flatcoloredblocks]]
+modId = "chiselsandbits"
+type = "optional"
+versionRange = "[0,)"
+ordering = "NONE"
+side = "BOTH"

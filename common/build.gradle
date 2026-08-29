@@ -1,0 +1,26 @@
+architectury {
+	common rootProject.enabled_platforms.split(',')
+}
+
+dependencies {
+	implementation "dev.architectury:architectury:${rootProject.architectury_version}"
+	compileOnly "dev.architectury:architectury-injectables:1.0.10"
+	// Soft runtime dep: present on compile classpath only; guarded by Platform.isModLoaded at runtime.
+	compileOnly("com.github.westernbear:ChiselsAndBits:v${rootProject.chiselsandbits_version}") {
+		exclude group: 'me.fzzyhmstrs'
+	}
+}
+
+def colorMathCheck = tasks.register('colorMathCheck', JavaExec) {
+	dependsOn testClasses
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'mod.flatcoloredblocks.block.ColorMathCheck'
+}
+
+tasks.named('test') {
+	failOnNoDiscoveredTests.set(false)
+}
+
+tasks.named('check') {
+	dependsOn colorMathCheck
+}

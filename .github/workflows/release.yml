@@ -33,7 +33,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # ponytail: single-loader build; collect multiple JARs if this becomes multiloader.
-          artifact="$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' -print -quit)"
-          test -f "$artifact"
-          gh release create "$GITHUB_REF_NAME" "$artifact" --generate-notes --verify-tag --title "$GITHUB_REF_NAME"
+          mapfile -t artifacts < <(find fabric/build/libs neoforge/build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' ! -name '*-raw.jar' -print | sort)
+          test "${#artifacts[@]}" -ge 1
+          gh release create "$GITHUB_REF_NAME" "${artifacts[@]}" --generate-notes --verify-tag --title "$GITHUB_REF_NAME"

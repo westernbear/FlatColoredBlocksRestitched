@@ -1,0 +1,17 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "mod.flatcoloredblocks.mixin.core",
+  "compatibilityLevel": "JAVA_25",
+  "plugin": "mod.flatcoloredblocks.mixin.FlatColoredBlocksMixinPlugin",
+  "mixins": [
+    "BeaconBlockEntityMixin",
+    "LegacyBlockFixMixins$ChiselsAndBitsMixin",
+    "LegacyBlockFixMixins$LevelDataMixin",
+    "LegacyBlockFixMixins$LevelDataSaveMixin",
+    "LegacyBlockFixMixins$SectionMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
